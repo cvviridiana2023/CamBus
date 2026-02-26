@@ -564,6 +564,39 @@ select.form-control option { background:#fff; color:var(--text1); }
 .confirm-body { text-align:center; padding:10px 0 20px; }
 .confirm-icon { font-size:44px; margin-bottom:12px; }
 .confirm-msg { font-family:var(--font-display); font-weight:600; font-size:15px; color:var(--text2); line-height:1.6; }
+
+/* ── ROLE BADGES ── */
+.role-badge {
+  display:inline-flex; align-items:center; gap:5px;
+  padding:3px 10px; border-radius:20px;
+  font-size:10px; font-weight:700; letter-spacing:1.5px;
+  font-family:var(--font-mono); text-transform:uppercase;
+}
+.role-badge.ADMIN    { background:rgba(59,91,219,0.12); color:#3b5bdb; border:1px solid rgba(59,91,219,0.3); }
+.role-badge.SUPERVISOR { background:rgba(124,58,237,0.1); color:#7c3aed; border:1px solid rgba(124,58,237,0.3); }
+.role-badge.OPERADOR { background:rgba(8,145,178,0.1); color:#0891b2; border:1px solid rgba(8,145,178,0.3); }
+
+/* Roles: hide/show by data-roles attribute */
+/* Elements hidden for certain roles are handled via JS class toggling */
+.role-hidden { display:none !important; }
+
+/* ── ACCESS DENIED BANNER ── */
+.access-denied {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  height:100%; gap:16px; color:var(--text3);
+  padding:60px;
+}
+.access-denied .ad-icon { font-size:52px; }
+.access-denied h2 { font-family:var(--font-display); font-size:20px; color:var(--text2); }
+.access-denied p { font-size:13px; max-width:320px; text-align:center; line-height:1.7; }
+
+/* ── READ-ONLY OVERLAY ── */
+.readonly-notice {
+  display:inline-flex; align-items:center; gap:6px;
+  background:var(--yellow-bg); border:1px solid rgba(217,119,6,0.25);
+  color:var(--yellow); border-radius:8px; padding:6px 14px;
+  font-size:11px; font-weight:600; letter-spacing:.5px;
+}
 </style>
 </head>
 <body>
@@ -600,16 +633,19 @@ select.form-control option { background:#fff; color:var(--text1); }
       <button class="nav-btn" onclick="showView('andenes',this)">Andenes</button>
       <button class="nav-btn" onclick="showView('eventos',this)">Eventos</button>
       <button class="nav-btn" onclick="showView('camiones',this)">Camiones</button>
-      <button class="nav-btn" onclick="showView('reportes',this)">Reportes</button>
-      <button class="nav-btn" onclick="showView('usuarios',this)">Usuarios</button>
+      <button class="nav-btn nav-role-supervisor" onclick="showView('reportes',this)">Reportes</button>
+      <button class="nav-btn nav-role-admin" onclick="showView('usuarios',this)">Usuarios</button>
     </div>
 
     <div class="topbar-right">
       <div class="live-badge"><div class="live-dot"></div>EN VIVO</div>
       <div class="clock" id="clock">--:--:--</div>
       <div class="user-pill" onclick="showUserMenu()">
-        <div class="user-avatar">MA</div>
-        <div class="user-name">Admin</div>
+        <div class="user-avatar" id="user-avatar">MA</div>
+        <div>
+          <div class="user-name" id="user-name-display">Admin</div>
+          <div id="user-role-badge" class="role-badge ADMIN" style="margin-top:1px">ADMIN</div>
+        </div>
       </div>
     </div>
   </header>
@@ -628,19 +664,19 @@ select.form-control option { background:#fff; color:var(--text1); }
       <div class="sb-label">Gestión</div>
       <div class="sb-item" onclick="showView('camiones',null,this)"><span class="ico">🚛</span>Camiones</div>
       <div class="sb-item" onclick="showView('estancias',null,this)"><span class="ico">◫</span>Estancias</div>
-      <div class="sb-item" onclick="showView('turnos',null,this)"><span class="ico">◑</span>Turnos</div>
-      <div class="sb-item" onclick="showView('placas',null,this)"><span class="ico">⊕</span>Placas</div>
+      <div class="sb-item sb-role-supervisor" onclick="showView('turnos',null,this)"><span class="ico">◑</span>Turnos</div>
+      <div class="sb-item sb-role-supervisor" onclick="showView('placas',null,this)"><span class="ico">⊕</span>Placas</div>
     </div>
     <div class="sb-divider"></div>
     <div class="sb-section">
       <div class="sb-label">Sistema</div>
-      <div class="sb-item" onclick="showView('reportes',null,this)"><span class="ico">📊</span>Reportes</div>
-      <div class="sb-item" onclick="showView('bitacora',null,this)"><span class="ico">📋</span>Bitácora</div>
-      <div class="sb-item" onclick="showView('usuarios',null,this)"><span class="ico">👥</span>Usuarios</div>
+      <div class="sb-item sb-role-supervisor" onclick="showView('reportes',null,this)"><span class="ico">📊</span>Reportes</div>
+      <div class="sb-item sb-role-admin" onclick="showView('bitacora',null,this)"><span class="ico">📋</span>Bitácora</div>
+      <div class="sb-item sb-role-admin" onclick="showView('usuarios',null,this)"><span class="ico">👥</span>Usuarios</div>
     </div>
     <div class="sb-divider"></div>
     <div class="sb-section">
-      <div class="sb-item" onclick="showView('config',null,this)"><span class="ico">⚙️</span>Configuración</div>
+      <div class="sb-item sb-role-admin" onclick="showView('config',null,this)"><span class="ico">⚙️</span>Configuración</div>
       <div class="sb-item" onclick="confirmLogout()"><span class="ico">⬡</span>Cerrar Sesión</div>
     </div>
   </nav>
@@ -685,7 +721,7 @@ select.form-control option { background:#fff; color:var(--text1); }
       <h1><span class="accent">ANDENES</span></h1>
     </div>
     <div class="action-row">
-      <button class="btn btn-primary" onclick="openNuevoAndenModal()">+ NUEVO ANDÉN</button>
+      <button class="btn btn-primary action-role-supervisor" onclick="openNuevoAndenModal()">+ NUEVO ANDÉN</button>
       <input class="search-bar" placeholder="🔍  Buscar andén..." oninput="filterAndenes(this.value)">
       <select class="search-bar" style="width:160px" onchange="filterAndenesByStatus(this.value)">
         <option value="">Todos los estados</option>
@@ -710,7 +746,7 @@ select.form-control option { background:#fff; color:var(--text1); }
       <h1><span class="accent">EVENTOS</span></h1>
     </div>
     <div class="action-row">
-      <button class="btn btn-primary" onclick="openNuevoEventoModal()">+ REGISTRAR EVENTO</button>
+      <button class="btn btn-primary action-role-supervisor" onclick="openNuevoEventoModal()">+ REGISTRAR EVENTO</button>
       <input class="search-bar" placeholder="🔍  Buscar placa, andén..." oninput="filterEventos(this.value)">
       <select class="search-bar" style="width:150px" onchange="filterEventosByTipo(this.value)">
         <option value="">Todos los tipos</option>
@@ -722,8 +758,8 @@ select.form-control option { background:#fff; color:var(--text1); }
         <option value="procesado">PROCESADO</option>
         <option value="pendiente">PENDIENTE</option>
       </select>
-      <button class="btn" onclick="exportEventos()">⬇ EXPORTAR CSV</button>
-      <button class="btn" onclick="marcarTodosProcesados()">✓ PROCESAR TODOS</button>
+      <button class="btn action-role-supervisor" onclick="exportEventos()">⬇ EXPORTAR CSV</button>
+      <button class="btn action-role-supervisor" onclick="marcarTodosProcesados()">✓ PROCESAR TODOS</button>
     </div>
     <div class="tbl-wrap">
       <table>
@@ -740,9 +776,9 @@ select.form-control option { background:#fff; color:var(--text1); }
       <h1><span class="accent">CAMIONES</span></h1>
     </div>
     <div class="action-row">
-      <button class="btn btn-primary" onclick="openNuevoCamionModal()">+ NUEVO CAMIÓN</button>
+      <button class="btn btn-primary action-role-supervisor" onclick="openNuevoCamionModal()">+ NUEVO CAMIÓN</button>
       <input class="search-bar" placeholder="🔍  Buscar placa, empresa..." oninput="filterCamiones(this.value)">
-      <button class="btn" onclick="exportCamiones()">⬇ EXPORTAR</button>
+      <button class="btn action-role-supervisor" onclick="exportCamiones()">⬇ EXPORTAR</button>
     </div>
     <div class="tbl-wrap">
       <table>
@@ -812,7 +848,7 @@ select.form-control option { background:#fff; color:var(--text1); }
       <h1><span class="accent">USUARIOS</span></h1>
     </div>
     <div class="action-row">
-      <button class="btn btn-primary" onclick="openNuevoUsuarioModal()">+ NUEVO USUARIO</button>
+      <button class="btn btn-primary action-role-admin" onclick="openNuevoUsuarioModal()">+ NUEVO USUARIO</button>
       <input class="search-bar" placeholder="🔍  Buscar usuario, correo..." oninput="filterUsuarios(this.value)">
       <select class="search-bar" style="width:160px" onchange="filterUsuariosByRol(this.value)">
         <option value="">Todos los roles</option>
@@ -836,7 +872,7 @@ select.form-control option { background:#fff; color:var(--text1); }
       <h1><span class="accent">ESTANCIAS</span></h1>
     </div>
     <div class="action-row">
-      <button class="btn btn-primary" onclick="openNuevaEstanciaModal()">+ REGISTRAR ESTANCIA</button>
+      <button class="btn btn-primary action-role-supervisor" onclick="openNuevaEstanciaModal()">+ REGISTRAR ESTANCIA</button>
       <input class="search-bar" placeholder="🔍  Buscar camión, andén..." oninput="filterEstancias(this.value)">
       <select class="search-bar" style="width:160px" onchange="filterEstanciasByEstado(this.value)">
         <option value="">Todos</option>
@@ -896,7 +932,7 @@ select.form-control option { background:#fff; color:var(--text1); }
     <div class="action-row">
       <input class="search-bar" placeholder="🔍  Buscar acción, usuario..." oninput="filterBitacora(this.value)">
       <button class="btn" onclick="exportBitacora()">⬇ EXPORTAR</button>
-      <button class="btn btn-danger" onclick="confirmLimpiarBitacora()">🗑 LIMPIAR</button>
+      <button class="btn btn-danger action-role-admin" onclick="confirmLimpiarBitacora()">🗑 LIMPIAR</button>
     </div>
     <div class="tbl-wrap">
       <table>
@@ -961,6 +997,17 @@ select.form-control option { background:#fff; color:var(--text1); }
     </div>
   </div>
 
+  <!-- ACCESS DENIED VIEW -->
+  <div class="center" id="view-access-denied">
+    <div class="access-denied">
+      <div class="ad-icon">🔒</div>
+      <h2>Acceso Restringido</h2>
+      <p>No tienes permisos para acceder a la sección <strong><span id="ad-view-name"></span></strong>.<br>
+      Contacta a un Administrador si necesitas acceso a esta área.</p>
+      <button class="btn" onclick="showView('dashboard')">← Volver al Dashboard</button>
+    </div>
+  </div>
+
   <!-- RIGHT PANEL -->
   <aside class="right-panel">
     <div style="margin-bottom:18px">
@@ -1009,7 +1056,7 @@ select.form-control option { background:#fff; color:var(--text1); }
   <footer class="statusbar">
     <div class="st-item"><div class="st-dot"></div>Sistema Operativo</div>
     <div class="st-item">BD: <span>PostgreSQL 15</span></div>
-    <div class="st-item">Sesión: <span>ADMIN</span></div>
+    <div class="st-item">Sesión: <span id="st-session-rol">ADMIN</span></div>
     <div class="st-item">Uptime: <span id="uptime">00:00:00</span></div>
     <div class="st-item ml">Instituto Tecnológico de Matehuala · CamBus v1.0</div>
   </footer>
@@ -1021,7 +1068,7 @@ select.form-control option { background:#fff; color:var(--text1); }
 // ═══════════════════════════════════════════════════════════════
 
 // ── CONFIGURACIÓN API ────────────────────────────────────────────
-const BASE_URL = 'http://localhost:3000/api'; // Cambia en producción
+const BASE_URL = 'https://cambus-production.up.railway.app/api'; // Producción Railway
 
 async function api(method, path, body = null) {
   const token = sessionStorage.getItem('cambus_token');
@@ -1080,8 +1127,10 @@ async function doLogin() {
       body: JSON.stringify({ correo, password: pass })
     });
     if (!res.ok) throw new Error((await res.json()).message);
-    const { token, nombre } = await res.json();
-    sessionStorage.setItem('cambus_token', token);
+    const data = await res.json();
+    sessionStorage.setItem('cambus_token', data.token);
+    // Guardar rol para referencia inmediata antes del reload
+    if (data.rol) sessionStorage.setItem('cambus_rol', data.rol);
     location.reload();
   } catch (e) {
     errEl.textContent = e.message;
@@ -1090,6 +1139,7 @@ async function doLogin() {
 
 function doLogout() {
   sessionStorage.removeItem('cambus_token');
+  sessionStorage.removeItem('cambus_rol');
   location.reload();
 }
 
@@ -1193,8 +1243,9 @@ function evtRow(e, mini = false) {
     </td>
     <td><span class="tag tag-${proc ? 'procesado' : 'pendiente'}">${proc ? 'PROCESADO' : 'PENDIENTE'}</span></td>
     ${!mini ? `<td><div style="display:flex;gap:4px">
-      ${!proc ? `<button class="btn btn-sm btn-success" onclick="procesarEvento(${id})">✓</button>` : ''}
-      <button class="btn btn-sm btn-danger" onclick="eliminarEvento(${id})">✕</button>
+      ${(!proc && puedeCrear()) ? `<button class="btn btn-sm btn-success" onclick="procesarEvento(${id})">✓</button>` : ''}
+      ${puedeEliminar() ? `<button class="btn btn-sm btn-danger" onclick="eliminarEvento(${id})">✕</button>` : ''}
+      ${(!puedeCrear() && !puedeEliminar()) ? '<span style="font-size:10px;color:var(--text4)">Solo lectura</span>' : ''}
     </div></td>` : '<td></td>'}
   </tr>`;
 }
@@ -2168,13 +2219,18 @@ function backupDB(){ toast('info','Backup','Funcionalidad de backup próximament
 
 // ── USUARIO MENÚ ────────────────────────────────────────────────
 function showUserMenu() {
-  const nombre = document.querySelector('.user-name')?.textContent || 'Usuario';
-  const correo = sessionStorage.getItem('cambus_correo') || '';
+  const nombre   = document.getElementById('user-name-display')?.textContent || 'Usuario';
+  const rol      = getRol();
+  const correo   = currentUser?.correo || '';
   const initials = nombre.split(' ').map(p=>p[0]).join('').slice(0,2).toUpperCase();
+  const rolColors = { ADMIN:'#3b5bdb', SUPERVISOR:'#7c3aed', OPERADOR:'#0891b2' };
+  const color = rolColors[rol] || '#6b7280';
   openModal('Mi Cuenta', `
     <div style="text-align:center;padding:10px 0 16px">
       <div style="width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--accent-purple));display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:900;color:#fff;margin:0 auto 12px">${initials}</div>
       <div style="font-family:var(--font-display);font-weight:800;font-size:18px;color:var(--text1);margin-bottom:4px">${nombre}</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:8px">${correo}</div>
+      <span class="role-badge ${rol}">${rol}</span>
     </div>
     <div class="form-group" style="margin-bottom:12px"><label>Nueva Contraseña</label><input class="form-control" id="my-pass" type="password" placeholder="••••••••"></div>
     <div class="form-group"><label>Confirmar Contraseña</label><input class="form-control" id="my-pass2" type="password" placeholder="••••••••"></div>`,
@@ -2216,7 +2272,7 @@ function turnoProgress() {
 }
 
 // ── VIEW ROUTER ────────────────────────────────────────────────
-function showView(name, navBtn, sbItem) {
+function _showViewBase(name, navBtn, sbItem) {
   document.querySelectorAll('.center').forEach(c=>c.classList.remove('visible'));
   const target = document.getElementById('view-'+name);
   if (target) { target.classList.add('visible'); }
@@ -2227,6 +2283,22 @@ function showView(name, navBtn, sbItem) {
   const navMap = {dashboard:0,andenes:1,eventos:2,camiones:3,reportes:4,usuarios:5};
   const navBtns = document.querySelectorAll('.nav-btn');
   if (navMap[name] !== undefined) navBtns[navMap[name]].classList.add('active');
+}
+
+function showView(name, navBtn, sbItem) {
+  // Antes de que se cargue el usuario, permitir dashboard siempre
+  if (!currentUser) { _showViewBase(name, navBtn, sbItem); return; }
+  if (!puedeVer(name)) {
+    document.querySelectorAll('.center').forEach(c => c.classList.remove('visible'));
+    const denied = document.getElementById('view-access-denied');
+    if (denied) denied.classList.add('visible');
+    const msgEl = document.getElementById('ad-view-name');
+    if (msgEl) msgEl.textContent = name.toUpperCase();
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.sb-item').forEach(b => b.classList.remove('active'));
+    return;
+  }
+  _showViewBase(name, navBtn, sbItem);
 }
 
 // ── TOAST ──────────────────────────────────────────────────────
@@ -2278,6 +2350,121 @@ function download(filename, content, mime) {
   a.download = filename; a.click(); URL.revokeObjectURL(a.href);
 }
 
+// ═══════════════════════════════════════════════════════════════
+// SISTEMA DE ROLES — CAMBUS
+// ═══════════════════════════════════════════════════════════════
+//
+//  ADMIN       → Acceso total: todas las vistas y acciones
+//  SUPERVISOR  → Monitoreo + Gestión completa + Reportes
+//                Sin acceso a: Usuarios, Bitácora, Configuración
+//  OPERADOR    → Solo monitoreo: Dashboard, Andenes (lectura),
+//                Eventos (solo ver), Camiones (solo ver),
+//                Estancias (solo ver). Sin crear/editar/eliminar.
+//
+//  La lógica se aplica en applyRoleUI() llamado al cargar sesión.
+// ───────────────────────────────────────────────────────────────
+
+// Jerarquía numérica para comparaciones
+const ROLE_LEVEL = { ADMIN: 3, SUPERVISOR: 2, OPERADOR: 1 };
+
+// Mapa de permisos detallados por rol
+const ROLE_PERMISSIONS = {
+  ADMIN: {
+    views:      ['dashboard','andenes','eventos','camiones','reportes','usuarios','estancias','turnos','placas','bitacora','config'],
+    canCreate:  true,
+    canEdit:    true,
+    canDelete:  true,
+    canExport:  true,
+  },
+  SUPERVISOR: {
+    views:      ['dashboard','andenes','eventos','camiones','reportes','estancias','turnos','placas'],
+    canCreate:  true,
+    canEdit:    true,
+    canDelete:  false,
+    canExport:  true,
+  },
+  OPERADOR: {
+    views:      ['dashboard','andenes','eventos','camiones','estancias'],
+    canCreate:  false,
+    canEdit:    false,
+    canDelete:  false,
+    canExport:  false,
+  }
+};
+
+// Variable global con el usuario actual
+let currentUser = null;
+
+function getRol() {
+  return currentUser?.rol || 'OPERADOR';
+}
+
+function puedeVer(view) {
+  const perms = ROLE_PERMISSIONS[getRol()];
+  return perms ? perms.views.includes(view) : false;
+}
+
+function puedeCrear()   { return ROLE_PERMISSIONS[getRol()]?.canCreate  ?? false; }
+function puedeEditar()  { return ROLE_PERMISSIONS[getRol()]?.canEdit    ?? false; }
+function puedeEliminar(){ return ROLE_PERMISSIONS[getRol()]?.canDelete  ?? false; }
+function puedeExportar(){ return ROLE_PERMISSIONS[getRol()]?.canExport  ?? false; }
+
+// Aplica restricciones de UI según el rol
+function applyRoleUI() {
+  const rol = getRol();
+  const perms = ROLE_PERMISSIONS[rol];
+
+  // ── 1. Sidebar items ──
+  document.querySelectorAll('.sb-role-admin').forEach(el => {
+    if (rol !== 'ADMIN') el.classList.add('role-hidden');
+  });
+  document.querySelectorAll('.sb-role-supervisor').forEach(el => {
+    if (ROLE_LEVEL[rol] < 2) el.classList.add('role-hidden');
+  });
+
+  // ── 2. Nav tabs ──
+  document.querySelectorAll('.nav-role-admin').forEach(el => {
+    if (rol !== 'ADMIN') el.classList.add('role-hidden');
+  });
+  document.querySelectorAll('.nav-role-supervisor').forEach(el => {
+    if (ROLE_LEVEL[rol] < 2) el.classList.add('role-hidden');
+  });
+
+  // ── 3. Botones de acción ──
+  // Acciones que requieren permiso "supervisor" (crear/editar)
+  document.querySelectorAll('.action-role-supervisor').forEach(el => {
+    if (!puedeCrear()) el.classList.add('role-hidden');
+  });
+  // Acciones exclusivas de admin (eliminar/config)
+  document.querySelectorAll('.action-role-admin').forEach(el => {
+    if (rol !== 'ADMIN') el.classList.add('role-hidden');
+  });
+
+  // ── 4. Badge en topbar ──
+  const badge = document.getElementById('user-role-badge');
+  if (badge) {
+    badge.textContent = rol;
+    badge.className = `role-badge ${rol}`;
+  }
+
+  // ── 5. Status bar ──
+  const stRol = document.getElementById('st-session-rol');
+  if (stRol) stRol.textContent = rol;
+
+  // ── 6. Personalizar dashboard title ──
+  const dashTitle = document.querySelector('#view-dashboard h1');
+  if (dashTitle) {
+    const rolLabel = {
+      ADMIN: 'PANEL DE <span class="accent">CONTROL</span>',
+      SUPERVISOR: 'PANEL DE <span class="accent">SUPERVISIÓN</span>',
+      OPERADOR: 'VISTA DE <span class="accent">MONITOREO</span>',
+    };
+    dashTitle.innerHTML = rolLabel[rol] || dashTitle.innerHTML;
+  }
+
+  console.log(`🔐 Rol aplicado: ${rol} | Vistas: ${perms.views.join(', ')}`);
+}
+
 // ── INIT ───────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', async () => {
 
@@ -2288,21 +2475,28 @@ window.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
-  // 2. Verificar que el token sea válido
+  // 2. Verificar que el token sea válido y cargar usuario
   try {
     const me = await api('GET', '/auth/me');
-    const nameEl = document.querySelector('.user-name');
-    const avaEl  = document.querySelector('.user-avatar');
+    currentUser = me; // ← Guardar usuario global con su rol
+
+    const nameEl  = document.getElementById('user-name-display');
+    const avaEl   = document.getElementById('user-avatar');
     if (nameEl) nameEl.textContent = me.nombre;
     if (avaEl) {
       avaEl.textContent = me.nombre
         .split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase();
     }
+
     // Actualizar fecha
     const d = new Date();
     const dateEl = document.getElementById('dash-date');
     if (dateEl) dateEl.textContent =
       d.toLocaleDateString('es-MX',{weekday:'long',year:'numeric',month:'long',day:'numeric'}).toUpperCase();
+
+    // ← APLICAR ROLES AQUÍ
+    applyRoleUI();
+
   } catch (e) {
     sessionStorage.removeItem('cambus_token');
     mostrarLogin();
@@ -2314,8 +2508,9 @@ window.addEventListener('DOMContentLoaded', async () => {
   uptime(); setInterval(uptime, 1000);
   turnoProgress(); setInterval(turnoProgress, 30000);
 
-  // 4. Cargar todos los datos en paralelo
-  await Promise.all([
+  // 4. Cargar datos según el rol
+  const rol = getRol();
+  const loads = [
     occupancyRing(),
     cargarKPIs(),
     renderDashAndenes(),
@@ -2326,12 +2521,19 @@ window.addEventListener('DOMContentLoaded', async () => {
     renderEventos(),
     renderCamiones(),
     renderEstancias(),
-    renderTurnos(),
-    renderPlacas(),
-    renderBitacora(),
-    renderUsuarios(),
-    renderReportesTable(),
-  ]);
+  ];
+  // Cargar datos extra solo si el rol lo permite
+  if (ROLE_LEVEL[rol] >= 2) {
+    loads.push(renderTurnos(), renderPlacas());
+  }
+  if (ROLE_LEVEL[rol] >= 2) {
+    loads.push(renderReportesTable());
+  }
+  if (rol === 'ADMIN') {
+    loads.push(renderBitacora(), renderUsuarios());
+  }
+
+  await Promise.all(loads);
 
   // 5. Inicializar ultimoEventoId con el evento más reciente
   try {
