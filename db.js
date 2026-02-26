@@ -10,9 +10,11 @@ const pool = new Pool({
   database: process.env.DB_NAME     || 'CamBus',
   user:     process.env.DB_USER     || 'postgres',
   password: process.env.DB_PASSWORD || '1234',
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
 
-// Verificar conexión al arrancar
 pool.connect((err, client, release) => {
   if (err) {
     console.error('❌ ERROR al conectar a PostgreSQL:', err.message);
