@@ -1868,11 +1868,16 @@ async function renderEstancias() {
       <td class="mono">${e.salida  || '—'}</td>
       <td class="mono gv">${e.duracion}</td>
       <td><span class="tag tag-${e.estado.toLowerCase()}">${e.estado}</span></td>
-      <td>
+      <td style="display:flex;gap:4px;flex-wrap:wrap;align-items:center">
         ${e.estado === 'ACTIVA'
           ? `<button class="btn btn-sm btn-success" onclick="finalizarEstancia(${e.id_estancia})">✓ FINALIZAR</button>`
           : ''}
-        <button class="btn btn-sm btn-danger" onclick="eliminarEstancia(${e.id_estancia})">✕</button>
+        ${puedeEditar()
+          ? `<button class="btn btn-sm" onclick="editarEstancia(${e.id_estancia})" title="Editar" style="padding:4px 8px;font-size:13px">✎</button>`
+          : ''}
+        ${puedeEliminar()
+          ? `<button class="btn btn-sm btn-danger" onclick="eliminarEstancia(${e.id_estancia})">✕</button>`
+          : ''}
       </td>
     </tr>`).join('');
   } catch (e) {
@@ -1938,6 +1943,60 @@ async function doNuevaEstancia() {
     await renderEstancias(); await renderAndenes(); await renderDashAndenes(); await occupancyRing(); await cargarKPIs();
     closeModal();
   } catch (e) { toast('error', 'Error', e.message); }
+}
+
+function editarEstancia(id) {
+  Promise.all([
+    api('GET', `/estancias/${id}`),
+    api('GET', '/camiones'),
+    api('GET', '/andenes'),
+    api('GET', '/turnos'),
+  ]).then(([e, camiones, andenes, turnos]) => {
+    // Formatear datetimes para input[type=datetime-local]
+    const fmtDt = (val) => {
+      if (!val) return '';
+      // Quitar segundos/ms y ajustar separador
+      return val.replace(' ', 'T').slice(0, 16);
+    };
+    openModal(`Editar Estancia #${id}`, `
+      <div class="form-grid">
+        <div class="form-group span2"><label>Camión</label><select class="form-control" id="ee-camion">
+          ${camiones.map(c => `<option value="${c.id_camion}" ${c.id_camion === e.id_camion ? 'selected' : ''}>${c.placa} — ${c.empresa||''}</option>`).join('')}
+        </select></div>
+        <div class="form-group"><label>Andén</label><select class="form-control" id="ee-anden">
+          ${andenes.map(a => `<option value="${a.id_anden}" ${a.id_anden === e.id_anden ? 'selected' : ''}>A-${String(a.numero_anden).padStart(2,'0')} · ${a.ubicacion||''} (${a.estado})</option>`).join('')}
+        </select></div>
+        <div class="form-group"><label>Turno</label><select class="form-control" id="ee-turno">
+          ${turnos.map(t => `<option value="${t.id_turno}" ${t.id_turno === e.id_turno ? 'selected' : ''}>${t.nombre_turno}</option>`).join('')}
+        </select></div>
+        <div class="form-group"><label>Entrada</label><input class="form-control" type="datetime-local" id="ee-entrada" value="${fmtDt(e.entrada)}"></div>
+        <div class="form-group"><label>Salida</label><input class="form-control" type="datetime-local" id="ee-salida" value="${fmtDt(e.salida)}" ${e.estado === 'ACTIVA' ? '' : ''}></div>
+        <div class="form-group span2"><label>Estado</label><select class="form-control" id="ee-estado">
+          <option ${e.estado === 'ACTIVA' ? 'selected' : ''}>ACTIVA</option>
+          <option ${e.estado === 'FINALIZADA' ? 'selected' : ''}>FINALIZADA</option>
+        </select></div>
+      </div>`,
+      `<button class="btn" onclick="closeModal()">CANCELAR</button>
+       <button class="btn btn-primary" onclick="doEditarEstancia(${id})">GUARDAR CAMBIOS</button>`);
+  }).catch(err => toast('error', 'Error', err.message));
+}
+
+async function doEditarEstancia(id) {
+  try {
+    const entrada = document.getElementById('ee-entrada')?.value;
+    const salida  = document.getElementById('ee-salida')?.value;
+    await api('PUT', `/estancias/${id}`, {
+      id_camion: parseInt(document.getElementById('ee-camion')?.value),
+      id_anden:  parseInt(document.getElementById('ee-anden')?.value),
+      id_turno:  parseInt(document.getElementById('ee-turno')?.value),
+      entrada:   entrada ? entrada.replace('T', ' ') + ':00' : null,
+      salida:    salida  ? salida.replace('T', ' ') + ':00'  : null,
+      estado:    document.getElementById('ee-estado')?.value,
+    });
+    toast('success', 'Estancia Actualizada', `Cambios guardados correctamente.`);
+    await renderEstancias(); await renderAndenes(); await renderDashAndenes(); await occupancyRing(); await cargarKPIs();
+    closeModal();
+  } catch (err) { toast('error', 'Error', err.message); }
 }
 
 // ── TURNOS ─────────────────────────────────────────────────────
